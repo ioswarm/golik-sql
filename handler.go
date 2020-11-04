@@ -67,6 +67,26 @@ type sqlHandler struct {
 	behavior   interface{}
 }
 
+func (h *sqlHandler) count(ctx golik.CloveContext, where string) int {
+	qry := "SELECT count(*) as cnt from " + h.tablePath() + " " + where
+	rows, err := h.database.Query(qry)
+	if err != nil {
+		ctx.Warn("Could not query count: %v", err)
+		return 0
+	}
+	defer rows.Close()
+	
+	if rows.Next() {
+		var result int
+		if err := rows.Scan(&result); err != nil {
+			ctx.Warn("Could not get count value: %v", err)
+			return 0
+		}
+		return result
+	}
+	return 0
+}
+
 func (h *sqlHandler) Filter(ctx golik.CloveContext, flt *golik.Filter) (*golik.Result, error) {
 	cond, err := flt.Condition()
 	if err != nil {
@@ -74,12 +94,14 @@ func (h *sqlHandler) Filter(ctx golik.CloveContext, flt *golik.Filter) (*golik.R
 	}
 
 	where, _ := NewFilter(cond)
+	count := h.count(ctx, where)
 	size := flt.Size
 	if size == 0 {
 		size = 10
 	}
+	to := flt.From + size
 	filterQry := fmt.Sprintln(h.buildSelectAll(), where)
-	qry := fmt.Sprintf(baseFilterQuery, h.builder.ColumnQueryStr(), h.indexField, filterQry, flt.From, size)
+	qry := fmt.Sprintf(baseFilterQuery, h.builder.ColumnQueryStr(), h.indexField, filterQry, flt.From+1, to)
 	ctx.Debug("Execute query: %v", qry)
 
 	rows, err := h.database.Query(qry)
@@ -108,7 +130,7 @@ func (h *sqlHandler) Filter(ctx golik.CloveContext, flt *golik.Filter) (*golik.R
 	return &golik.Result{
 		From:   flt.From,
 		Size:   len(result),
-		Count:  0, // TODO
+		Count:  count,
 		Result: result,
 	}, nil
 }
