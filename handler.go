@@ -9,6 +9,20 @@ import (
 	"github.com/ioswarm/golik"
 )
 
+var baseFilterQuery = `
+select %s from (
+  select * from (
+	select 
+	  row_number() over (order by a.%s) as line_num, 
+	  a.* 
+	from (
+      %s
+	) a
+  ) x
+  where x.line_num between %d and %d
+) y
+`
+
 func defaultHandlerCreation(db *sql.DB, itype reflect.Type, indexField string, schema string, table string, behavior interface{}) golik.HandlerCreation {
 	return func(ctx golik.CloveContext) (golik.Handler, error) {
 		return NewSqlHandler(db, itype, indexField, schema, table, behavior)
@@ -33,29 +47,70 @@ func NewSqlHandler(db *sql.DB, itype reflect.Type, indexField string, schema str
 	}
 
 	return &sqlHandler{
-		database: db,
-		itype: itype,
+		database:   db,
+		itype:      itype,
 		indexField: fld,
-		behavior: behavior,
-		schema: schema,
-		table: table,
-		builder: NewEntityBuilder(itype),
+		behavior:   behavior,
+		schema:     schema,
+		table:      table,
+		builder:    NewEntityBuilder(itype),
 	}, nil
 }
 
-
 type sqlHandler struct {
-	database *sql.DB
+	database   *sql.DB
 	itype      reflect.Type
 	indexField string
-	schema string
-	table string
-	builder EntityBuilder 
+	schema     string
+	table      string
+	builder    EntityBuilder
 	behavior   interface{}
 }
 
 func (h *sqlHandler) Filter(ctx golik.CloveContext, flt *golik.Filter) (*golik.Result, error) {
-	return nil, nil
+	cond, err := flt.Condition()
+	if err != nil {
+		return nil, err
+	}
+
+	where, _ := NewFilter(cond)
+	size := flt.Size
+	if size == 0 {
+		size = 10
+	}
+	filterQry := fmt.Sprintln(h.buildSelectAll(), where)
+	qry := fmt.Sprintf(baseFilterQuery, h.builder.ColumnQueryStr(), h.indexField, filterQry, flt.From, size)
+	ctx.Debug("Execute query: %v", qry)
+
+	rows, err := h.database.Query(qry)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]interface{}, 0)
+
+	vals := h.builder.ScanList()
+	for rows.Next() {
+		if err := rows.Scan(vals...); err != nil {
+			return nil, err
+		}
+		ptrvale := reflect.New(h.itype)
+		res := ptrvale.Interface()
+
+		if err := h.builder.Read(vals, res); err != nil {
+			return nil, err
+		}
+
+		result = append(result, res)
+	}
+
+	return &golik.Result{
+		From:   flt.From,
+		Size:   len(result),
+		Count:  0, // TODO
+		Result: result,
+	}, nil
 }
 
 func (h *sqlHandler) Create(ctx golik.CloveContext, cmd *golik.CreateCommand) error {
@@ -75,7 +130,7 @@ func (h *sqlHandler) buildSelectAll() string {
 
 func (h *sqlHandler) Read(ctx golik.CloveContext, cmd *golik.GetCommand) (interface{}, error) {
 	qry := fmt.Sprintf("%v WHERE %v = %v", h.buildSelectAll(), h.indexField, toSqlValue(cmd.Id))
-	ctx.Info("Execute query: '%v'", qry)
+	ctx.Debug("Execute query: '%v'", qry)
 	rows, err := h.database.Query(qry)
 	if err != nil {
 		return nil, err

@@ -2,13 +2,21 @@ package sql
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ioswarm/golik"
 )
 
 func NewFilter(cond golik.Condition) (string, error) {
-	return interpretCondition(cond)
+	result, err := interpretCondition(cond)
+	if err != nil {
+		return "", err
+	}
+	if result != "" {
+		return "WHERE " + strings.TrimSpace(result), nil
+	}
+	return "", nil
 }
 
 func interpretCondition(condition golik.Condition) (string, error) {
@@ -26,7 +34,7 @@ func interpretCondition(condition golik.Condition) (string, error) {
 		grp := condition.(golik.Grouping)
 		return interpretGrouping(grp)
 	default:
-		return "", fmt.Errorf("Unsupported condition %T", condition)
+		return "", nil
 	}
 }
 
@@ -54,11 +62,11 @@ func interpretOperand(op golik.Operand) (string, error) {
 	case golik.NE:
 		return fmt.Sprintln(op.Attribute(), "!=", value), nil
 	case golik.CO:
-		return fmt.Sprintf("%v LIKE '%%v%'", op.Attribute(), op.Value()), nil
+		return fmt.Sprintf("%v LIKE '%%%s%%'", op.Attribute(), op.Value()), nil
 	case golik.SW:
-		return fmt.Sprintf("%v LIKE '%v%'", op.Attribute(), op.Value()), nil
+		return fmt.Sprintf("%v LIKE '%s%%'", op.Attribute(), op.Value()), nil
 	case golik.EW:
-		return fmt.Sprintf("%v LIKE '%%v'", op.Attribute(), op.Value()), nil
+		return fmt.Sprintf("%v LIKE '%%%s'", op.Attribute(), op.Value()), nil
 	case golik.PR:
 		return fmt.Sprintln(op.Attribute(), "IS NOT NULL"), nil
 	case golik.GT:
