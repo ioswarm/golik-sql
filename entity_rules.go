@@ -4,6 +4,8 @@ import (
 	"time"
 	"fmt"
 	"reflect"
+
+	"database/sql"
 )
 
 var (
@@ -17,16 +19,20 @@ func NewStringRule() FieldConversionRule {
 type stringRule struct {}
 
 func (r *stringRule) ValuePointer() interface{} {
-	return new(string)
+	return new(sql.NullString)
 }
 
 func (r *stringRule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(""), nil
 	}
-	if val, ok := v.(*string); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullString); ok {
+		if val.Valid {
+			return reflect.ValueOf(val.String), nil
+		}
+		return reflect.ValueOf(""), nil
 	}
+	
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as string", v)
 }
 
@@ -45,7 +51,7 @@ type timeRule struct {
 }
 
 func (r *timeRule) ValuePointer() interface{} {
-	return new(time.Time)
+	return new(sql.NullTime)
 }
 
 func (r *timeRule) ConvertValue(v interface{}) (reflect.Value, error) {
@@ -55,7 +61,14 @@ func (r *timeRule) ConvertValue(v interface{}) (reflect.Value, error) {
 		}
 		return reflect.ValueOf(time.Time{}), nil
 	}
-	if val, ok := v.(*time.Time); ok {
+	if val, ok := v.(*sql.NullTime); ok {
+		if val.Valid {
+			if r.pointer {
+				return reflect.ValueOf(&val.Time), nil
+			}
+			return reflect.ValueOf(val.Time), nil
+		}
+
 		if r.pointer {
 			return reflect.ValueOf(val), nil
 		}
@@ -81,15 +94,18 @@ func NewIntRule() FieldConversionRule {
 type intRule struct {}
 
 func (r *intRule) ValuePointer() interface{} {
-	return new(int)
+	return new(sql.NullInt32)
 }
 
 func (r *intRule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(0), nil
 	}
-	if val, ok := v.(*int); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullInt32); ok {
+		if val.Valid {
+			return reflect.ValueOf(int(val.Int32)), nil
+		}
+		return reflect.ValueOf(0), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -106,15 +122,18 @@ func NewInt8Rule() FieldConversionRule {
 type int8Rule struct {}
 
 func (r *int8Rule) ValuePointer() interface{} {
-	return new(int8)
+	return new(sql.NullInt32)
 }
 
 func (r *int8Rule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(int8(0)), nil
 	}
-	if val, ok := v.(*int8); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullInt32); ok {
+		if val.Valid {
+			return reflect.ValueOf(int8(val.Int32)), nil
+		}
+		return reflect.ValueOf(int8(0)), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -131,15 +150,18 @@ func NewInt16Rule() FieldConversionRule {
 type int16Rule struct {}
 
 func (r *int16Rule) ValuePointer() interface{} {
-	return new(int16)
+	return new(sql.NullInt32)
 }
 
 func (r *int16Rule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(int16(0)), nil
 	}
-	if val, ok := v.(*int16); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullInt32); ok {
+		if val.Valid {
+			return reflect.ValueOf(int16(val.Int32)), nil
+		}
+		return reflect.ValueOf(int16(0)), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -156,15 +178,18 @@ func NewInt32Rule() FieldConversionRule {
 type int32Rule struct {}
 
 func (r *int32Rule) ValuePointer() interface{} {
-	return new(int32)
+	return new(sql.NullInt32)
 }
 
 func (r *int32Rule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(int32(0)), nil
 	}
-	if val, ok := v.(*int32); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullInt32); ok {
+		if val.Valid {
+			return reflect.ValueOf(val.Int32), nil
+		}
+		return reflect.ValueOf(int32(0)), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -181,15 +206,18 @@ func NewInt64Rule() FieldConversionRule {
 type int64Rule struct {}
 
 func (r *int64Rule) ValuePointer() interface{} {
-	return new(int64)
+	return new(sql.NullInt64)
 }
 
 func (r *int64Rule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(int64(0)), nil
 	}
-	if val, ok := v.(*int64); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullInt64); ok {
+		if val.Valid {
+			return reflect.ValueOf(val.Int64), nil
+		}
+		return reflect.ValueOf(int64(0)), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -207,15 +235,18 @@ func NewUintRule() FieldConversionRule {
 type uintRule struct {}
 
 func (r *uintRule) ValuePointer() interface{} {
-	return new(uint)
+	return new(sql.NullInt32)
 }
 
 func (r *uintRule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(uint(0)), nil
 	}
-	if val, ok := v.(*uint); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullInt32); ok {
+		if val.Valid {
+			return reflect.ValueOf(uint(val.Int32)), nil
+		}
+		return reflect.ValueOf(uint(0)), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -232,15 +263,18 @@ func NewUint8Rule() FieldConversionRule {
 type uint8Rule struct {}
 
 func (r *uint8Rule) ValuePointer() interface{} {
-	return new(uint8)
+	return new(sql.NullInt32)
 }
 
 func (r *uint8Rule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(uint8(0)), nil
 	}
-	if val, ok := v.(*uint8); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullInt32); ok {
+		if val.Valid {
+			return reflect.ValueOf(uint8(val.Int32)), nil
+		}
+		return reflect.ValueOf(uint8(0)), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -257,15 +291,18 @@ func NewUint16Rule() FieldConversionRule {
 type uint16Rule struct {}
 
 func (r *uint16Rule) ValuePointer() interface{} {
-	return new(uint16)
+	return new(sql.NullInt32)
 }
 
 func (r *uint16Rule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(uint16(0)), nil
 	}
-	if val, ok := v.(*uint16); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullInt32); ok {
+		if val.Valid {
+			return reflect.ValueOf(uint16(val.Int32)), nil
+		}
+		return reflect.ValueOf(uint16(0)), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -282,15 +319,18 @@ func NewUint32Rule() FieldConversionRule {
 type uint32Rule struct {}
 
 func (r *uint32Rule) ValuePointer() interface{} {
-	return new(uint32)
+	return new(sql.NullInt32)
 }
 
 func (r *uint32Rule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(uint32(0)), nil
 	}
-	if val, ok := v.(*uint32); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullInt32); ok {
+		if val.Valid {
+			return reflect.ValueOf(uint32(val.Int32)), nil
+		}
+		return reflect.ValueOf(uint32(0)), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -307,15 +347,18 @@ func NewUint64Rule() FieldConversionRule {
 type uint64Rule struct {}
 
 func (r *uint64Rule) ValuePointer() interface{} {
-	return new(uint64)
+	return new(sql.NullInt64)
 }
 
 func (r *uint64Rule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(uint64(0)), nil
 	}
-	if val, ok := v.(*uint64); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullInt64); ok {
+		if val.Valid {
+			return reflect.ValueOf(uint64(val.Int64)), nil
+		}
+		return reflect.ValueOf(uint64(0)), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -333,15 +376,18 @@ func NewFloat32Rule() FieldConversionRule {
 type float32Rule struct {}
 
 func (r *float32Rule) ValuePointer() interface{} {
-	return new(float32)
+	return new(sql.NullFloat64)
 }
 
 func (r *float32Rule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(float32(0.0)), nil
 	}
-	if val, ok := v.(*float32); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullFloat64); ok {
+		if val.Valid {
+			return reflect.ValueOf(float32(val.Float64)), nil
+		}
+		return reflect.ValueOf(float32(0.0)), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -358,15 +404,18 @@ func NewFloat64Rule() FieldConversionRule {
 type float64Rule struct {}
 
 func (r *float64Rule) ValuePointer() interface{} {
-	return new(float64)
+	return new(sql.NullFloat64)
 }
 
 func (r *float64Rule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(float64(0.0)), nil
 	}
-	if val, ok := v.(*float64); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullFloat64); ok {
+		if val.Valid {
+			return reflect.ValueOf(val.Float64), nil
+		}
+		return reflect.ValueOf(float64(0)), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -384,15 +433,18 @@ func NewBoolRule() FieldConversionRule {
 type boolRule struct {}
 
 func (r *boolRule) ValuePointer() interface{} {
-	return new(bool)
+	return new(sql.NullBool)
 }
 
 func (r *boolRule) ConvertValue(v interface{}) (reflect.Value, error) {
 	if v == nil {
 		return reflect.ValueOf(false), nil
 	}
-	if val, ok := v.(*bool); ok {
-		return reflect.ValueOf(*val), nil
+	if val, ok := v.(*sql.NullBool); ok {
+		if val.Valid {
+			return reflect.ValueOf(val.Bool), nil
+		}
+		return reflect.ValueOf(false), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
