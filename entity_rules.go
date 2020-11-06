@@ -1,9 +1,9 @@
 package sql
 
 import (
-	"time"
 	"fmt"
 	"reflect"
+	"time"
 
 	"database/sql"
 )
@@ -16,7 +16,7 @@ func NewStringRule() FieldConversionRule {
 	return &stringRule{}
 }
 
-type stringRule struct {}
+type stringRule struct{}
 
 func (r *stringRule) ValuePointer() interface{} {
 	return new(sql.NullString)
@@ -32,15 +32,13 @@ func (r *stringRule) ConvertValue(v interface{}) (reflect.Value, error) {
 		}
 		return reflect.ValueOf(""), nil
 	}
-	
+
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as string", v)
 }
 
 func (r *stringRule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.String
 }
-
-
 
 func NewTimeRule() FieldConversionRule {
 	return &timeRule{}
@@ -70,9 +68,9 @@ func (r *timeRule) ConvertValue(v interface{}) (reflect.Value, error) {
 		}
 
 		if r.pointer {
-			return reflect.ValueOf(val), nil
+			return reflect.New(timetype), nil
 		}
-		return reflect.ValueOf(*val), nil
+		return reflect.ValueOf(time.Time{}), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("Could not convert %T as int", v)
 }
@@ -85,13 +83,11 @@ func (r *timeRule) CanConvert(ftype reflect.Type) bool {
 	return ftype == timetype
 }
 
-
-
 func NewIntRule() FieldConversionRule {
 	return &intRule{}
 }
 
-type intRule struct {}
+type intRule struct{}
 
 func (r *intRule) ValuePointer() interface{} {
 	return new(sql.NullInt32)
@@ -114,12 +110,11 @@ func (r *intRule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Int
 }
 
-
 func NewInt8Rule() FieldConversionRule {
 	return &int8Rule{}
 }
 
-type int8Rule struct {}
+type int8Rule struct{}
 
 func (r *int8Rule) ValuePointer() interface{} {
 	return new(sql.NullInt32)
@@ -142,12 +137,11 @@ func (r *int8Rule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Int8
 }
 
-
 func NewInt16Rule() FieldConversionRule {
 	return &int16Rule{}
 }
 
-type int16Rule struct {}
+type int16Rule struct{}
 
 func (r *int16Rule) ValuePointer() interface{} {
 	return new(sql.NullInt32)
@@ -170,12 +164,11 @@ func (r *int16Rule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Int16
 }
 
-
 func NewInt32Rule() FieldConversionRule {
 	return &int32Rule{}
 }
 
-type int32Rule struct {}
+type int32Rule struct{}
 
 func (r *int32Rule) ValuePointer() interface{} {
 	return new(sql.NullInt32)
@@ -198,12 +191,11 @@ func (r *int32Rule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Int32
 }
 
-
 func NewInt64Rule() FieldConversionRule {
 	return &int64Rule{}
 }
 
-type int64Rule struct {}
+type int64Rule struct{}
 
 func (r *int64Rule) ValuePointer() interface{} {
 	return new(sql.NullInt64)
@@ -226,13 +218,11 @@ func (r *int64Rule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Int64
 }
 
-
-
 func NewUintRule() FieldConversionRule {
 	return &uintRule{}
 }
 
-type uintRule struct {}
+type uintRule struct{}
 
 func (r *uintRule) ValuePointer() interface{} {
 	return new(sql.NullInt32)
@@ -255,12 +245,11 @@ func (r *uintRule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Uint
 }
 
-
 func NewUint8Rule() FieldConversionRule {
 	return &uint8Rule{}
 }
 
-type uint8Rule struct {}
+type uint8Rule struct{}
 
 func (r *uint8Rule) ValuePointer() interface{} {
 	return new(sql.NullInt32)
@@ -283,12 +272,11 @@ func (r *uint8Rule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Uint8
 }
 
-
 func NewUint16Rule() FieldConversionRule {
 	return &uint16Rule{}
 }
 
-type uint16Rule struct {}
+type uint16Rule struct{}
 
 func (r *uint16Rule) ValuePointer() interface{} {
 	return new(sql.NullInt32)
@@ -311,12 +299,11 @@ func (r *uint16Rule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Uint16
 }
 
-
 func NewUint32Rule() FieldConversionRule {
 	return &uint32Rule{}
 }
 
-type uint32Rule struct {}
+type uint32Rule struct{}
 
 func (r *uint32Rule) ValuePointer() interface{} {
 	return new(sql.NullInt32)
@@ -339,12 +326,11 @@ func (r *uint32Rule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Uint32
 }
 
-
 func NewUint64Rule() FieldConversionRule {
 	return &uint64Rule{}
 }
 
-type uint64Rule struct {}
+type uint64Rule struct{}
 
 func (r *uint64Rule) ValuePointer() interface{} {
 	return new(sql.NullInt64)
@@ -367,13 +353,11 @@ func (r *uint64Rule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Uint64
 }
 
-
-
 func NewFloat32Rule() FieldConversionRule {
 	return &float32Rule{}
 }
 
-type float32Rule struct {}
+type float32Rule struct{}
 
 func (r *float32Rule) ValuePointer() interface{} {
 	return new(sql.NullFloat64)
@@ -396,12 +380,11 @@ func (r *float32Rule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Float32
 }
 
-
 func NewFloat64Rule() FieldConversionRule {
 	return &float64Rule{}
 }
 
-type float64Rule struct {}
+type float64Rule struct{}
 
 func (r *float64Rule) ValuePointer() interface{} {
 	return new(sql.NullFloat64)
@@ -424,13 +407,11 @@ func (r *float64Rule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Float64
 }
 
-
-
 func NewBoolRule() FieldConversionRule {
 	return &boolRule{}
 }
 
-type boolRule struct {}
+type boolRule struct{}
 
 func (r *boolRule) ValuePointer() interface{} {
 	return new(sql.NullBool)
@@ -453,13 +434,11 @@ func (r *boolRule) CanConvert(ftype reflect.Type) bool {
 	return ftype.Kind() == reflect.Bool
 }
 
-
-
 func NewBinaryRule() FieldConversionRule {
 	return &binaryRule{}
 }
 
-type binaryRule struct {}
+type binaryRule struct{}
 
 func (r *binaryRule) ValuePointer() interface{} {
 	return new([]byte)
