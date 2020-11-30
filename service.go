@@ -1,11 +1,11 @@
 package sql
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
-	"sync"
-	"database/sql"
 	"strings"
+	"sync"
 
 	"github.com/ioswarm/golik"
 )
@@ -24,8 +24,8 @@ func NewSql(name string, schema string, driver string, connection string, system
 
 func NewSqlService(name string, settings *Settings, system golik.Golik) (*SqlService, error) {
 	sqls := &SqlService{
-		name: name,
-		system: system,
+		name:     name,
+		system:   system,
 		settings: settings,
 	}
 
@@ -42,8 +42,8 @@ func NewSqlService(name string, settings *Settings, system golik.Golik) (*SqlSer
 }
 
 type SqlService struct {
-	name string
-	system golik.Golik
+	name     string
+	system   golik.Golik
 	handler  golik.CloveHandler
 	settings *Settings
 	database *sql.DB
@@ -74,6 +74,10 @@ func (sqls *SqlService) connect(ctx golik.CloveContext) error {
 		ctx.Error("Could not connect via %v to %v: %v", sqls.Driver(), sqls.Connection(), err)
 		return golik.Errorf("Could not connect via %v to %v: %v", sqls.Driver(), sqls.Connection(), err)
 	}
+
+	con.SetMaxOpenConns(sqls.settings.MaxOpenConnections)
+	con.SetMaxIdleConns(sqls.settings.MaxIdleConnections)
+	con.SetConnMaxLifetime(sqls.settings.ConnectionLifeTime)
 
 	sqls.mutex.Lock()
 	defer sqls.mutex.Unlock()
