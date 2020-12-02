@@ -44,10 +44,10 @@ func toSqlValue(value interface{}) interface{} {
 		return fmt.Sprintf("'%v'", value)
 	case time.Time:
 		t := value.(time.Time)
-		return fmt.Sprintf("'%v'", t.Format("2006-01-02T15:04:05.000"))
+		return fmt.Sprintf("'%v'", t.Format("2006-01-02 15:04:05.000"))
 	case *time.Time:
 		t := value.(*time.Time)
-		return fmt.Sprintf("'%v'", t.Format("2006-01-02T15:04:05.000"))
+		return fmt.Sprintf("'%v'", t.Format("2006-01-02 15:04:05.000"))
 	default:
 		return value
 	}
