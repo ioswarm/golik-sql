@@ -2,6 +2,7 @@ package sql
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -51,12 +52,16 @@ func (f *fieldDef) ConversionRule() FieldConversionRule {
 type EntityBuilder interface {
 	Rules() []FieldConversionRule
 	AddRule(...FieldConversionRule) EntityBuilder
-	Fields() []Field
+	Fields(...string) []Field
 	ScanList() []interface{}
 
 	Read([]interface{}, interface{}) error
 
-	ColumnQueryStr()string
+	ValueOf(interface{}, string) (interface{}, error)
+	Values(interface{}, ...string) []interface{}
+
+	SqlNames(...string) []string
+	ColumnQueryStr() string
 }
 
 func NewEntityBuilder(etype reflect.Type) EntityBuilder {
@@ -84,7 +89,7 @@ func NewEntityBuilder(etype reflect.Type) EntityBuilder {
 }
 
 type entityBuilder struct {
-	etype  reflect.Type
+	etype reflect.Type
 	rules []FieldConversionRule
 }
 
@@ -93,7 +98,7 @@ func (eb *entityBuilder) Rules() []FieldConversionRule {
 }
 
 func (eb *entityBuilder) AddRule(rule ...FieldConversionRule) EntityBuilder {
-	eb.rules = append(rule, eb.rules...)	
+	eb.rules = append(rule, eb.rules...)
 	return eb
 }
 
@@ -106,8 +111,16 @@ func (eb *entityBuilder) findRuleMatch(ftype reflect.Type) (FieldConversionRule,
 	return nil, false
 }
 
-func (eb *entityBuilder) Fields() []Field {
+func (eb *entityBuilder) Fields(expects ...string) []Field {
 	result := make([]Field, 0)
+	contains := func(name string) bool {
+		for _, e := range expects {
+			if strings.ToUpper(e) == strings.ToUpper(name) {
+				return true
+			}
+		}
+		return false
+	}
 
 	for i := 0; i < eb.etype.NumField(); i++ {
 		field := eb.etype.Field(i)
@@ -115,7 +128,9 @@ func (eb *entityBuilder) Fields() []Field {
 		if name[0] >= 65 && name[0] <= 90 {
 			if rule, ok := eb.findRuleMatch(field.Type); ok {
 				f := NewField(field, rule)
-				result = append(result, f)
+				if !contains(f.SQLName()) {
+					result = append(result, f)
+				}
 			}
 		}
 	}
@@ -160,12 +175,45 @@ func (eb *entityBuilder) Read(values []interface{}, i interface{}) error {
 	return nil
 }
 
-func (eb *entityBuilder) ColumnQueryStr() string {
+func (eb *entityBuilder) ValueOf(i interface{}, name string) (interface{}, error) {
 	fields := eb.Fields()
+	ivalue := reflect.ValueOf(i)
+	elemvalue := ivalue.Elem()
+
+	for _, fld := range fields {
+		if strings.ToUpper(fld.Name()) == strings.ToUpper(name) {
+			fldvalue := elemvalue.FieldByName(fld.Name())
+			return fldvalue.Interface(), nil
+		}
+	}
+	return nil, fmt.Errorf("Unknown field %v", name)
+}
+
+func (eb *entityBuilder) Values(i interface{}, expects ...string) []interface{} {
+	fields := eb.Fields(expects...)
+	result := make([]interface{}, len(fields))
+
+	ivalue := reflect.ValueOf(i)
+	elemvalue := ivalue.Elem()
+
+	for i, fld := range fields {
+		fldvalue := elemvalue.FieldByName(fld.Name())
+		result[i] = fldvalue.Interface()
+	}
+
+	return result
+}
+
+func (eb *entityBuilder) SqlNames(expects ...string) []string {
+	fields := eb.Fields(expects...)
 	names := make([]string, len(fields))
 	for i, fld := range fields {
 		names[i] = fld.SQLName()
 	}
 
-	return strings.Join(names, ", ")
+	return names
+}
+
+func (eb *entityBuilder) ColumnQueryStr() string {
+	return strings.Join(eb.SqlNames(), ", ")
 }

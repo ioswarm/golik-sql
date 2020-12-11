@@ -5,6 +5,7 @@ import (
 
 	"database/sql"
 	"reflect"
+	"strings"
 
 	"github.com/ioswarm/golik"
 )
@@ -75,7 +76,7 @@ func (h *sqlHandler) count(ctx golik.CloveContext, where string) int {
 		return 0
 	}
 	defer rows.Close()
-	
+
 	if rows.Next() {
 		var result int
 		if err := rows.Scan(&result); err != nil {
@@ -135,15 +136,48 @@ func (h *sqlHandler) Filter(ctx golik.CloveContext, flt *golik.Filter) (*golik.R
 	}, nil
 }
 
-func (h *sqlHandler) Create(ctx golik.CloveContext, cmd *golik.CreateCommand) error {
-	return nil
-}
-
 func (h *sqlHandler) tablePath() string {
 	if h.schema == "" {
 		return h.table
 	}
 	return fmt.Sprintf("%v.%v", h.schema, h.table)
+}
+
+func (h *sqlHandler) buildInsert() string {
+	fields := h.builder.SqlNames()
+	result := make([]string, len(fields))
+	for i := range fields {
+		result[i] = "?"
+	}
+
+	return fmt.Sprintf("INSERT INTO %v (%v) VALUES (%v)", h.tablePath(), strings.Join(fields, ", "), strings.Join(result, ", "))
+}
+
+func (h *sqlHandler) Create(ctx golik.CloveContext, cmd *golik.CreateCommand) error {
+	tx, err := h.database.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	ddl := h.buildInsert()
+	stmt, err := tx.Prepare(ddl)
+	ctx.Debug("PrepareStatement: %v", ddl)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(h.builder.Values(cmd.Entity)...)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (h *sqlHandler) buildSelectAll() string {
@@ -177,12 +211,82 @@ func (h *sqlHandler) Read(ctx golik.CloveContext, cmd *golik.GetCommand) (interf
 	return nil, fmt.Errorf("Could not find entity with id %v", cmd.Id) // TODO define default errors
 }
 
+func (h *sqlHandler) buildUpdate() string {
+	fields := h.builder.SqlNames(h.indexField)
+	result := make([]string, len(fields))
+	for i, f := range fields {
+		result[i] = f + " = ?"
+	}
+
+	return fmt.Sprintf("UPDATE %v SET %v WHERE %v = ?", h.tablePath(), strings.Join(result, ", "), h.indexField)
+}
+
 func (h *sqlHandler) Update(ctx golik.CloveContext, cmd *golik.UpdateCommand) error {
+	if _, err := h.Read(ctx, golik.Get(cmd.Id)); err != nil {
+		return err
+	}
+
+	tx, err := h.database.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	ddl := h.buildUpdate()
+	stmt, err := tx.Prepare(ddl)
+	ctx.Debug("PrepareStatement: %v", ddl)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	vals := append(h.builder.Values(cmd.Entity, h.indexField), cmd.Id)
+	_, err = stmt.Exec(vals...)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
+func (h *sqlHandler) buildDelete() string {
+	return fmt.Sprintf("DELETE FROM %v WHERE %v = ?", h.tablePath(), h.indexField)
+}
+
 func (h *sqlHandler) Delete(ctx golik.CloveContext, cmd *golik.DeleteCommand) (interface{}, error) {
-	return nil, nil
+	entity, err := h.Read(ctx, golik.Get(cmd.Id))
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := h.database.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	ddl := h.buildDelete()
+	stmt, err := tx.Prepare(ddl)
+	ctx.Debug("PrepareStatement: %v", ddl)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(cmd.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return entity, nil
 }
 
 func (h *sqlHandler) OrElse(ctx golik.CloveContext, msg golik.Message) {
